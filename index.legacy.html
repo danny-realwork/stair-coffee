@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>STAiR 스테어 커피</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -15,23 +15,11 @@
     --paper: #fafaf9;
     --paper-2: #f4f4f5;
     --ink: #18181b;
-    --ink-soft: #52525b; /* AA+ on paper ≈ 7.9:1 */
-    --ink-softer: #71717a; /* only for non-text decorative use */
+    --ink-soft: #71717a;
     --gold: #a16207;
     --gold-2: #ca8a04;
     --rose: #9f1239;
     --line: #e4e4e7;
-  }
-  *:focus-visible {
-    outline: 2px solid var(--gold);
-    outline-offset: 2px;
-    border-radius: 6px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-    }
   }
   html, body { background: var(--paper); color: var(--ink); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
   body { font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', sans-serif; word-break: keep-all; overflow-wrap: break-word; }
@@ -80,50 +68,6 @@
   .grain { background: var(--paper); }
   input, select, textarea { font-family: inherit; }
   input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-
-  /* a11y helpers */
-  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-  .icon-btn { display:inline-flex; align-items:center; justify-content:center; min-width:36px; min-height:36px; border-radius: 999px; }
-
-  /* Mobile cart FAB & bottom sheet */
-  .cart-fab { position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 40; }
-  .bottom-sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); backdrop-filter: blur(4px); z-index: 50; }
-  .bottom-sheet {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 51;
-    background: var(--paper); border-top-left-radius: 24px; border-top-right-radius: 24px;
-    max-height: 88vh; display: flex; flex-direction: column;
-    box-shadow: 0 -12px 32px -8px rgba(0,0,0,0.2);
-    animation: sheetUp .22s ease-out;
-  }
-  @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-  .sheet-handle { width: 44px; height: 4px; border-radius: 999px; background: var(--line); margin: 10px auto 0; }
-
-  /* Success moment */
-  .success-screen {
-    position: fixed; inset: 0; z-index: 60;
-    background: var(--paper);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    animation: fadeIn .25s ease-out;
-  }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  .success-check {
-    width: 96px; height: 96px; border-radius: 50%;
-    background: var(--ink); color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 44px; font-weight: 700;
-    animation: pop .4s cubic-bezier(.2,.8,.2,1.2);
-  }
-  @keyframes pop { 0% { transform: scale(0); } 80% { transform: scale(1.08); } 100% { transform: scale(1); } }
-
-  /* Note chips: switch from bg-heavy to dot-prefix */
-  .note-chip {
-    display:inline-flex; align-items:center; gap: 6px;
-    font-size: 12px; color: var(--ink); padding: 3px 8px;
-    border: 1px solid var(--line); border-radius: 999px; background: #ffffff;
-  }
-  .note-chip::before {
-    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--gold);
-  }
 </style>
 </head>
 <body class="min-h-screen grain">
@@ -440,7 +384,7 @@ function BeanModal({ bean, ownerNote, onClose, onAdd }) {
               <h2 className="font-display text-3xl md:text-4xl mt-3 leading-tight">{bean.name}</h2>
               {bean.tagline && <p className="ink-soft mt-2 italic">"{bean.tagline}"</p>}
             </div>
-            <button onClick={onClose} className="icon-btn border hairline hover:bg-paper-2" aria-label="원두 상세 닫기">✕</button>
+            <button onClick={onClose} className="rounded-full w-9 h-9 border hairline hover:bg-paper-2">✕</button>
           </div>
 
           <Divider />
@@ -457,7 +401,7 @@ function BeanModal({ bean, ownerNote, onClose, onAdd }) {
 
               <div className="font-display tracking-[0.25em] text-xs text-gold mt-6 mb-3">TASTING NOTES</div>
               <div className="flex flex-wrap gap-2">
-                {bean.notes?.map(n => <span key={n} className="note-chip">{n}</span>)}
+                {bean.notes?.map(n => <span key={n} className="chip chip-gold">{n}</span>)}
               </div>
 
               <div className="font-display tracking-[0.25em] text-xs text-gold mt-6 mb-3">추천 타이밍</div>
@@ -562,7 +506,7 @@ function BeanCard({ bean, onClick, ownerNote }) {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
-        {bean.notes?.slice(0,3).map(n => <span key={n} className="note-chip">{n}</span>)}
+        {bean.notes?.slice(0,3).map(n => <span key={n} className="chip chip-gold">{n}</span>)}
       </div>
 
       {ownerNote && (
@@ -616,7 +560,7 @@ function ItemRow({ item, onAdd }) {
   );
 }
 
-function MenuView({ notes, greeting, onAdd, setActiveBean, moodFilter, setMoodFilter }) {
+function MenuView({ notes, greeting, onAdd, setActiveBean }) {
   const [filter, setFilter] = useState('전체');
   const filters = ['전체','입문','중급','고급','워시드','내추럴','디카페인','한정'];
 
@@ -630,73 +574,14 @@ function MenuView({ notes, greeting, onAdd, setActiveBean, moodFilter, setMoodFi
     return true;
   };
 
-  // 기분 매칭: whenMoods에 대한 큐레이션 (핵심 키워드로 압축).
-  const MOODS = [
-    { key: '업무 집중', label: '업무 집중' },
-    { key: '비 오는 날', label: '비 오는 날' },
-    { key: '브런치', label: '맑은 브런치' },
-    { key: '디저트', label: '디저트 페어링' },
-    { key: '기념일', label: '기념일·선물' },
-    { key: '아침', label: '상쾌한 아침' },
-    { key: '저녁', label: '늦은 저녁' },
-  ];
-
-  const moodMatch = (b) => {
-    if (!moodFilter) return true;
-    return (b.whenMoods || []).some(m => m.includes(moodFilter));
-  };
-
-  // 오늘의 원두: moodFilter가 있으면 매칭 1순위, 없으면 첫 중급/고급 중 안정형.
-  const todayPick = useMemo(() => {
-    const pool = CATALOG.brewing.filter(moodMatch);
-    return (pool[0] || CATALOG.brewing.find(b => b.difficulty === '중급') || CATALOG.brewing[0]);
-  }, [moodFilter]);
-
   return (
     <div className="space-y-12">
-      {/* 오늘의 원두 히어로 */}
-      {todayPick && (
-        <section>
-          <div className="soft-card p-6 md:p-8 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${todayPick.color}14 0%, #ffffff 55%)` }}>
-            <div className="absolute -right-4 top-4 stamp">today's pick · siphon</div>
-            <div className="font-display text-xs tracking-[0.35em] text-gold uppercase">Today's Bean</div>
-            <div className="font-display text-3xl md:text-4xl mt-2 leading-tight">{todayPick.name}</div>
-            {todayPick.tagline && <p className="ink-soft mt-2 italic">"{todayPick.tagline}"</p>}
-            <div className="flex flex-wrap gap-2 mt-4">
-              {(todayPick.notes || []).slice(0,4).map(n => <span key={n} className="note-chip">{n}</span>)}
-            </div>
-            <div className="mt-5 flex flex-wrap gap-3 items-center">
-              <button onClick={()=>setActiveBean(todayPick)} className="btn btn-primary">원두 자세히 보기 →</button>
-              <div className="text-sm ink-soft">{todayPick.origin} · {todayPick.process}</div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* 기분 매칭 */}
-      <section>
-        <SectionTitle en="MOOD FINDER" ko="기분으로 고르기" sub="오늘의 한 잔을 골라드려요" />
-        <div className="flex gap-2 overflow-x-auto scroll-hide pb-1">
-          <button onClick={()=>setMoodFilter(null)} className={`chip ${moodFilter===null?'chip-strong':''}`} aria-pressed={moodFilter===null}>전체</button>
-          {MOODS.map(m => (
-            <button key={m.key} onClick={()=>setMoodFilter(m.key === moodFilter ? null : m.key)} className={`chip ${moodFilter===m.key?'chip-strong':''}`} aria-pressed={moodFilter===m.key}>{m.label}</button>
-          ))}
-        </div>
-        {moodFilter && (
-          <div className="mt-4 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {CATALOG.brewing.filter(moodMatch).slice(0,3).map(b => (
-              <BeanCard key={b.id} bean={b} ownerNote={notes[b.id]} onClick={()=>setActiveBean(b)} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* 사장님 인사말(기존) */}
       <section>
         <div className="soft-card p-6 md:p-8 relative overflow-hidden">
+          <div className="absolute -right-4 top-4 stamp">since 2023 · siphon</div>
           <div className="font-display text-xs tracking-[0.35em] text-gold uppercase">Owner's Note</div>
-          <div className="font-display text-xl md:text-2xl mt-2">사장님의 한마디</div>
-          <p className="mt-3 text-sm leading-relaxed max-w-3xl">{greeting}</p>
+          <div className="font-display text-2xl md:text-3xl mt-2">사장님의 한마디</div>
+          <p className="mt-4 text-sm md:text-base leading-relaxed max-w-3xl">{greeting}</p>
         </div>
       </section>
 
@@ -775,7 +660,7 @@ function MenuView({ notes, greeting, onAdd, setActiveBean, moodFilter, setMoodFi
   );
 }
 
-function CartPanel({ cart, setCart, takeout, setTakeout, onCheckout, embedded }) {
+function CartPanel({ cart, setCart, takeout, setTakeout, onCheckout }) {
   const subtotal = cart.reduce((s, it) => s + (it.basePrice + (it.options.iced?500:0)) * it.qty, 0);
   const eligibleCount = takeout ? cart.filter(it => !/리필|디저트|치즈케이크|토스트|주스/.test(it.name)).reduce((s,it)=>s+it.qty,0) : 0;
   const discount = takeout ? 1000 * eligibleCount : 0;
@@ -786,7 +671,7 @@ function CartPanel({ cart, setCart, takeout, setTakeout, onCheckout, embedded })
   const rm  = (i) => setCart(cart.filter((_,idx)=>idx!==i));
 
   return (
-    <aside className={embedded ? "p-0" : "soft-card p-5 lg:sticky lg:top-4 h-fit"}>
+    <aside className="soft-card p-5 lg:sticky lg:top-4 h-fit">
       <div className="flex items-center justify-between mb-3">
         <div>
           <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Your Order</div>
@@ -806,13 +691,13 @@ function CartPanel({ cart, setCart, takeout, setTakeout, onCheckout, embedded })
                   <div className="font-medium text-sm">{it.name}</div>
                   <div className="text-[11px] ink-soft">{optionLabel(it.options) || '옵션 없음'}</div>
                 </div>
-                <button onClick={()=>rm(i)} className="icon-btn text-sm ink-soft" aria-label={`${it.name} 삭제`}>✕</button>
+                <button onClick={()=>rm(i)} className="text-xs ink-soft">✕</button>
               </div>
               <div className="flex justify-between items-center mt-2">
                 <div className="flex items-center gap-2">
-                  <button onClick={()=>dec(i)} className="icon-btn border hairline" aria-label="수량 감소">−</button>
-                  <span className="w-6 text-center text-sm" aria-live="polite" aria-atomic="true">{it.qty}</span>
-                  <button onClick={()=>inc(i)} className="icon-btn border hairline" aria-label="수량 증가">+</button>
+                  <button onClick={()=>dec(i)} className="w-7 h-7 rounded-full border hairline">−</button>
+                  <span className="w-6 text-center text-sm">{it.qty}</span>
+                  <button onClick={()=>inc(i)} className="w-7 h-7 rounded-full border hairline">+</button>
                 </div>
                 <div className="font-display text-lg">{KRW(unit * it.qty)}</div>
               </div>
@@ -841,7 +726,7 @@ function CartPanel({ cart, setCart, takeout, setTakeout, onCheckout, embedded })
   );
 }
 
-function LoginView({ onLogin, onCancel }) {
+function LoginView({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -868,16 +753,12 @@ function LoginView({ onLogin, onCancel }) {
         <div className="text-[10px] tracking-[0.3em] text-gold mt-1">스테어 커피 · 매장 로그인</div>
         <div className="font-display text-2xl mt-6 mb-5">로그인</div>
         <div className="space-y-3">
-          <label className="sr-only" htmlFor="login-username">아이디</label>
           <input
-            id="login-username"
             value={username} onChange={e=>setUsername(e.target.value)}
             placeholder="아이디" autoComplete="username"
             className="w-full border hairline rounded-lg px-3 py-2.5 bg-paper text-sm"
           />
-          <label className="sr-only" htmlFor="login-password">비밀번호</label>
           <input
-            id="login-password"
             type="password" value={password} onChange={e=>setPassword(e.target.value)}
             placeholder="비밀번호" autoComplete="current-password"
             className="w-full border hairline rounded-lg px-3 py-2.5 bg-paper text-sm"
@@ -889,7 +770,7 @@ function LoginView({ onLogin, onCancel }) {
           </button>
         </div>
         <div className="text-[11px] ink-soft mt-6 text-center">
-          운영자 전용. 손님은 <button type="button" onClick={onCancel} className="underline text-gold">← 메뉴로 돌아가기</button>
+          기본 관리자: <span className="font-mono">admin / admin</span>
         </div>
       </form>
     </div>
@@ -1084,12 +965,11 @@ function GuideView() {
 │   ├─ 테이크아웃 선택 → 음료당 1,000원 할인
 │   └─ 주문 접수 → 관리자 탭 "최근 주문"에 기록
 │
-└─ 관리자 (Admin · 로그인 필요)
-    ├─ 사용자 관리 (아이디 추가/삭제, 권한)
+└─ 관리자 (Admin · 비번 stair)
     ├─ 메인 인사말 수정
     ├─ 원두별 사장님 한마디 수정
     ├─ 최근 주문 확인
-    └─ JSON 내보내기`}
+    └─ JSON 내보내기/가져오기, 초기화`}
         </pre>
       </section>
 
@@ -1101,9 +981,8 @@ function GuideView() {
           <li><b>PC/노트북에서:</b> <span className="font-mono">index.html</span> 파일을 더블클릭하면 브라우저에서 바로 실행됩니다.</li>
           <li><b>온라인 배포:</b> GitHub에 푸시 후 Vercel과 연결하면 공용 URL로 접속할 수 있습니다. 푸시할 때마다 자동 재배포됩니다.</li>
           <li><b>와이파이 공유(선택):</b> 같은 네트워크의 기기에 보여주려면 파일을 한 대에 두고 간단한 정적 서버를 실행하세요. 예: 터미널에서 <span className="font-mono">python3 -m http.server 8080</span> 후, 다른 기기에서 <span className="font-mono">http://[IP]:8080</span> 접속.</li>
-          <li><b>데이터 저장 위치:</b> 사장님 한마디·원두 메모·주문·사용자는 모두 <b>Supabase</b> 클라우드에 저장됩니다. 기기를 바꿔도 같은 계정으로 로그인하면 동일한 데이터를 봅니다.</li>
-          <li><b>관리자 진입:</b> 푸터의 <b>운영자 로그인</b> 버튼 또는 URL 끝에 <span className="font-mono">?admin=1</span>을 붙이면 로그인 화면이 나옵니다. 손님 아이패드에서는 이 버튼이 보이지 않게 기본 주소로 고정하세요.</li>
-          <li><b>비밀번호 변경:</b> 관리자 탭 <b>사용자 관리</b>에서 계정을 추가/삭제해 교체할 수 있습니다.</li>
+          <li><b>데이터 저장 위치:</b> 사장님 한마디/주문은 해당 브라우저의 localStorage에 저장됩니다. 기기를 바꾸려면 관리자 탭에서 <b>JSON 내보내기 → 새 기기에서 가져오기</b>를 이용하세요.</li>
+          <li><b>비밀번호 변경:</b> 파일을 텍스트 편집기로 열고 <span className="font-mono">pw==='stair'</span> 두 군데를 원하는 비밀번호로 바꾸면 끝입니다.</li>
         </ol>
       </section>
 
@@ -1111,10 +990,10 @@ function GuideView() {
         <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">File structure</div>
         <div className="font-display text-2xl mt-1 mb-3">파일 구조 (유지보수 기준)</div>
         <pre className="text-[12.5px] leading-relaxed bg-paper-2 p-3 rounded whitespace-pre-wrap">
-{`index.html              ← 단일 파일 앱 (React + Tailwind CDN + Supabase)
+{`stair_coffee_app.html   ← 단일 파일 앱 (React + Tailwind CDN)
   └── <script> 영역의 CATALOG = { ... }   ← 메뉴 추가/수정
-  └── SUPABASE_URL / SUPABASE_KEY        ← 클라우드 데이터 저장 연결
-  └── 관리자 계정은 Admin 탭 사용자 관리에서 운영
+  └── defaultOwnerNotes                 ← 최초 사장님 한마디
+  └── 관리자 비밀번호 상수 'stair'
 README_스테어.md         ← 구동/배포 가이드 (같은 폴더에 배포)
 stair_admin_export.json  ← (선택) 관리자 내보낸 백업`}
         </pre>
@@ -1137,47 +1016,29 @@ stair_admin_export.json  ← (선택) 관리자 내보낸 백업`}
 
 function App() {
   const [session, setSession] = useState(loadSession);
-  const [showLogin, setShowLogin] = useState(() => {
-    try { return new URLSearchParams(window.location.search).get('admin') === '1'; }
-    catch { return false; }
-  });
   const [tab, setTab] = useState('menu');
   const [state, setState] = useState({ notes: {}, greeting: '', orders: [], users: [], loaded: false });
   const [activeBean, setActiveBean] = useState(null);
   const [cart, setCart] = useState([]);
   const [takeout, setTakeout] = useState(false);
   const [toast, setToast] = useState(null);
-  const [moodFilter, setMoodFilter] = useState(null);
-  const [successOrder, setSuccessOrder] = useState(null); // { number, total, eta }
-  const [cartSheetOpen, setCartSheetOpen] = useState(false);
 
-  // 공개 콘텐츠(인사말/원두 노트)는 세션 없이도 불러옴.
   useEffect(() => {
+    if (!session) return;
     let cancelled = false;
     (async () => {
       try {
-        const [notes, greeting] = await Promise.all([ api.listNotes(), api.getGreeting() ]);
-        if (!cancelled) setState(s => ({ ...s, notes, greeting, loaded: true }));
-      } catch (e) {
-        console.error('공개 데이터 로딩 실패', e);
-        if (!cancelled) setState(s => ({ ...s, loaded: true }));
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  // 관리자 전용 데이터(주문/사용자)는 로그인 후에만.
-  useEffect(() => {
-    if (!session) { setState(s => ({ ...s, orders: [], users: [] })); return; }
-    let cancelled = false;
-    (async () => {
-      try {
-        const [orders, users] = await Promise.all([
+        const [notes, greeting, orders, users] = await Promise.all([
+          api.listNotes(),
+          api.getGreeting(),
           api.listOrders(),
           session.role === 'admin' ? api.listUsers() : Promise.resolve([]),
         ]);
-        if (!cancelled) setState(s => ({ ...s, orders, users }));
-      } catch (e) { console.error('관리자 데이터 로딩 실패', e); }
+        if (!cancelled) setState({ notes, greeting, orders, users, loaded: true });
+      } catch (e) {
+        console.error('데이터 로딩 실패', e);
+        if (!cancelled) setState(s => ({ ...s, loaded: true }));
+      }
     })();
     return () => { cancelled = true; };
   }, [session?.id]);
@@ -1201,35 +1062,24 @@ function App() {
     const eligible = cart.filter(it => !/리필|디저트|치즈케이크|토스트|주스/.test(it.name)).reduce((s,it)=>s+it.qty,0);
     const discount = takeout ? 1000 * eligible : 0;
     const total = Math.max(0, subtotal - discount);
-    const totalCups = cart.reduce((s,it)=>s+it.qty,0);
-    const eta = Math.max(3, Math.min(12, 2 + totalCups * 2)); // 간단한 예상시간 휴리스틱
     const order = { at: Date.now(), items: cart, total, takeout };
     try {
       await api.createOrder(order);
       setState(s => ({ ...s, orders: [order, ...s.orders] }));
-      // 주문번호는 세션 내 순번으로 표시(간단).
-      const number = (state.orders?.length || 0) + 1;
-      setCart([]); setTakeout(false); setCartSheetOpen(false);
-      setSuccessOrder({ number, total, eta, takeout });
-      if ('vibrate' in navigator) try { navigator.vibrate([12, 60, 12]); } catch {}
-      // 자동 복귀
-      setTimeout(() => setSuccessOrder(null), 5000);
+      setCart([]); setTakeout(false);
+      alert(`주문이 접수되었습니다.\n총 금액: ${KRW(total)}\n카운터에서 호출까지 잠시만 기다려 주세요 :)`);
     } catch (e) {
-      setToast('주문 접수 실패: ' + e.message);
-      setTimeout(()=>setToast(null), 3000);
+      alert('주문 접수 실패: ' + e.message);
     }
   };
 
-  const handleLogin = (user) => { saveSession(user); setSession(user); setShowLogin(false); };
+  const handleLogin = (user) => { saveSession(user); setSession(user); };
   const handleLogout = () => { saveSession(null); setSession(null); setTab('menu'); };
 
-  // 운영자 로그인 화면은 '요청'된 경우에만.
-  if (showLogin && !session) {
-    return <LoginView onLogin={handleLogin} onCancel={()=>setShowLogin(false)} />;
-  }
+  if (!session) return <LoginView onLogin={handleLogin} />;
 
   const navTabs = [['menu','메뉴 · 주문'], ['guide','사용 안내']];
-  if (session && session.role === 'admin') navTabs.push(['admin','관리자']);
+  if (session.role === 'admin') navTabs.push(['admin','관리자']);
 
   return (
     <div className="min-h-screen">
@@ -1245,12 +1095,10 @@ function App() {
                 <button key={k} onClick={()=>setTab(k)} className={`btn ${tab===k?'btn-primary':'btn-outline'}`}>{label}</button>
               ))}
             </nav>
-            {session && (
-              <div className="flex items-center gap-2 pl-3 border-l hairline">
-                <span className="text-xs ink-soft">{session.username} {session.role === 'admin' && <span className="chip ml-1">관리자</span>}</span>
-                <button onClick={handleLogout} className="btn btn-outline text-sm">로그아웃</button>
-              </div>
-            )}
+            <div className="flex items-center gap-2 pl-3 border-l hairline">
+              <span className="text-xs ink-soft">{session.username} {session.role === 'admin' && <span className="chip ml-1">관리자</span>}</span>
+              <button onClick={handleLogout} className="btn btn-outline text-sm">로그아웃</button>
+            </div>
           </div>
         </div>
       </header>
@@ -1266,13 +1114,9 @@ function App() {
                 greeting={state.greeting}
                 onAdd={addToCart}
                 setActiveBean={setActiveBean}
-                moodFilter={moodFilter}
-                setMoodFilter={setMoodFilter}
               />
             </div>
-            <div className="hidden lg:block">
-              <CartPanel cart={cart} setCart={setCart} takeout={takeout} setTakeout={setTakeout} onCheckout={checkout} />
-            </div>
+            <CartPanel cart={cart} setCart={setCart} takeout={takeout} setTakeout={setTakeout} onCheckout={checkout} />
           </div>
         ) : tab === 'guide' ? (
           <GuideView />
@@ -1283,79 +1127,14 @@ function App() {
 
       {activeBean && <BeanModal bean={activeBean} ownerNote={state.notes[activeBean.id]} onClose={()=>setActiveBean(null)} onAdd={addToCart} />}
 
-      {/* 모바일/태블릿 세로 : 플로팅 카트 바 */}
-      {tab === 'menu' && cart.length > 0 && (
-        <button
-          className="cart-fab lg:hidden btn btn-primary justify-between shadow-xl"
-          onClick={()=>setCartSheetOpen(true)}
-          aria-label={`장바구니 열기. ${cart.reduce((s,i)=>s+i.qty,0)}잔 담김`}
-        >
-          <span>{cart.reduce((s,i)=>s+i.qty,0)}잔 담김</span>
-          <span className="flex items-center gap-2">
-            <span className="font-display text-lg">{KRW(cart.reduce((s,it)=>s+(it.basePrice+(it.options.iced?500:0))*it.qty,0))}</span>
-            <span aria-hidden="true">→</span>
-          </span>
-        </button>
-      )}
-
-      {cartSheetOpen && (
-        <>
-          <div className="bottom-sheet-backdrop" onClick={()=>setCartSheetOpen(false)} aria-hidden="true" />
-          <div className="bottom-sheet lg:hidden" role="dialog" aria-modal="true" aria-label="주문 내역">
-            <div className="sheet-handle" aria-hidden="true" />
-            <div className="p-4 flex items-center justify-between">
-              <div className="font-display text-xl">주문 내역</div>
-              <button onClick={()=>setCartSheetOpen(false)} className="icon-btn border hairline" aria-label="닫기">✕</button>
-            </div>
-            <div className="px-4 pb-6 overflow-y-auto">
-              <CartPanel cart={cart} setCart={setCart} takeout={takeout} setTakeout={setTakeout} onCheckout={checkout} embedded />
-            </div>
-          </div>
-        </>
-      )}
-
-      {successOrder && (
-        <div className="success-screen" role="alertdialog" aria-live="assertive" aria-label="주문 접수 완료">
-          <div className="success-check" aria-hidden="true">✓</div>
-          <div className="mt-8 font-display tracking-[0.35em] text-xs text-gold uppercase">Order Received</div>
-          <div className="font-display text-4xl md:text-5xl mt-2">주문이 접수되었습니다</div>
-          <div className="mt-6 flex items-center gap-6">
-            <div className="text-center">
-              <div className="text-xs ink-soft">주문 번호</div>
-              <div className="font-display text-3xl">#{successOrder.number}</div>
-            </div>
-            <div className="w-px h-10 bg-paper-2" />
-            <div className="text-center">
-              <div className="text-xs ink-soft">예상 대기</div>
-              <div className="font-display text-3xl">약 {successOrder.eta}분</div>
-            </div>
-            <div className="w-px h-10 bg-paper-2" />
-            <div className="text-center">
-              <div className="text-xs ink-soft">총 금액</div>
-              <div className="font-display text-3xl">{KRW(successOrder.total)}</div>
-            </div>
-          </div>
-          {successOrder.takeout && <div className="chip chip-gold mt-4">테이크아웃</div>}
-          <p className="ink-soft text-sm mt-8 max-w-md text-center">카운터에서 번호를 부를 때까지 편하게 앉아 계세요. 사이폰은 시간이 천천히 흐릅니다.</p>
-          <button onClick={()=>setSuccessOrder(null)} className="btn btn-outline mt-10">처음으로 돌아가기</button>
-        </div>
-      )}
-
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 btn-primary btn shadow-lg" role="status" aria-live="polite">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 btn-primary btn shadow-lg">
           {toast}
         </div>
       )}
 
-      <footer className="text-center text-xs ink-soft py-10 pb-28 lg:pb-10">
-        <div>STAiR 스테어 커피 · @stair_2025 · 사이폰 전문 · Powered by Supabase</div>
-        {!session && (
-          <button
-            onClick={() => setShowLogin(true)}
-            className="mt-3 text-[11px] underline opacity-60 hover:opacity-100"
-            aria-label="운영자 로그인"
-          >운영자 로그인</button>
-        )}
+      <footer className="text-center text-xs ink-soft py-10">
+        STAiR 스테어 커피 · @stair_2025 · 사이폰 전문 · Powered by Supabase
       </footer>
     </div>
   );
