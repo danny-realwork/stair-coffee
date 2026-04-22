@@ -8,6 +8,7 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
 <style>
   :root {
@@ -239,40 +240,89 @@ const CATALOG = {
   ],
 };
 
-const LS_KEY = 'stair_v1_state';
-const defaultOwnerNotes = {
-  b1: '바닐라 아이스크림 한 스쿱 곁들여 드셔보세요. 평일 오후 지친 몸을 달래주는 친구 같은 커피예요.',
-  b2: '치즈케이크와 페어링하면 과실감이 두 배로 터집니다. 주말 저녁 한 잔 추천!',
-  b3: '햇살 좋은 낮에 창가 자리에서 드시길. 식으면서 꽃향이 더 확 살아나요.',
-  b4: '비 오는 날 제일 먼저 찾는 원두. 진하고 달콤한 베리향이 마음을 녹여줍니다.',
-  b5: '아침 공복에 가장 어울리는 원두예요. 홍차처럼 깔끔해서 속에 부담도 덜합니다.',
-  b6: '잠이 안 깰 때, 오후 미팅 직전에 드셔보세요. 블랙커런트의 생기가 즉효약입니다.',
-  b7: '디저트 대신 한 잔. 단맛이 충분해서 당 충전이 됩니다.',
-  b8: '사이폰으로 천천히 내리는 게 맛의 핵심. 향을 오래 잡아두고 천천히 즐기세요.',
-  b9: '한정 수량입니다. 품절 전에 꼭 한 번 드셔보세요.',
-  b10: '기념일이나 생일 선물 같은 한 잔. 특별한 순간을 위해 준비된 원두입니다.',
-  b11: '새로운 경험을 원하시는 분께. 발효 뉘앙스가 강해서 처음 드시면 놀라실 거예요.',
-  dc1: '저녁 8시 이후에도 편하게. 마운틴워터 공법이라 향미도 또렷합니다.',
-  bl1: '오늘 기분에 맞춰 라이트 / 미디엄 / 다크를 골라보세요. 아침엔 라이트, 식후엔 미디엄, 디저트엔 다크를 추천.',
-};
-const defaultGreeting = '안녕하세요, 스테어의 사장입니다. 저는 사이폰으로 원두의 가장 맑은 얼굴을 보여드리는 걸 좋아합니다. 오늘의 기분이나 시간에 맞는 원두를 골라드릴게요. 잘 모르시면 언제든 말씀 주세요 :)';
+const SUPABASE_URL = 'https://qgxbiopskpteerhelvyq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_7lwO0jeAk_4cYriKq7TdeQ_Tj2gRyfQ';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+});
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return { notes: {...defaultOwnerNotes}, greeting: defaultGreeting, orders: [] };
-    const p = JSON.parse(raw);
-    return {
-      notes: { ...defaultOwnerNotes, ...(p.notes || {}) },
-      greeting: p.greeting || defaultGreeting,
-      orders: p.orders || [],
-    };
-  } catch(e) {
-    return { notes: {...defaultOwnerNotes}, greeting: defaultGreeting, orders: [] };
-  }
+const SESSION_KEY = 'stair_session_v1';
+
+async function sha256(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
-function saveState(s) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch(e){}
+
+const api = {
+  async login(username, password) {
+    const hash = await sha256(password);
+    const { data } = await sb.from('users')
+      .select('id, username, role')
+      .eq('username', username).eq('password_hash', hash).maybeSingle();
+    return data || null;
+  },
+  async listUsers() {
+    const { data } = await sb.from('users').select('id, username, role, created_at').order('created_at');
+    return data || [];
+  },
+  async addUser(username, password, role) {
+    const hash = await sha256(password);
+    const { data, error } = await sb.from('users')
+      .insert({ username, password_hash: hash, role }).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async deleteUser(id) {
+    const { error } = await sb.from('users').delete().eq('id', id);
+    if (error) throw error;
+  },
+  async listNotes() {
+    const { data } = await sb.from('owner_notes').select('bean_id, note');
+    const obj = {};
+    (data || []).forEach(r => { obj[r.bean_id] = r.note; });
+    return obj;
+  },
+  async upsertNote(beanId, note) {
+    const { error } = await sb.from('owner_notes')
+      .upsert({ bean_id: beanId, note, updated_at: new Date().toISOString() });
+    if (error) throw error;
+  },
+  async getGreeting() {
+    const { data } = await sb.from('greeting').select('content').eq('id', 1).maybeSingle();
+    return data?.content || '';
+  },
+  async setGreeting(content) {
+    const { error } = await sb.from('greeting')
+      .upsert({ id: 1, content, updated_at: new Date().toISOString() });
+    if (error) throw error;
+  },
+  async listOrders() {
+    const { data } = await sb.from('orders')
+      .select('*').order('at', { ascending: false }).limit(100);
+    return (data || []).map(r => ({
+      at: new Date(r.at).getTime(),
+      items: r.items_json,
+      total: r.total,
+      takeout: r.takeout,
+    }));
+  },
+  async createOrder(order) {
+    const { error } = await sb.from('orders').insert({
+      at: new Date(order.at).toISOString(),
+      items_json: order.items,
+      total: order.total,
+      takeout: order.takeout,
+    });
+    if (error) throw error;
+  },
+};
+
+function loadSession() {
+  try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)); } catch { return null; }
+}
+function saveSession(s) {
+  if (s) sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
+  else sessionStorage.removeItem(SESSION_KEY);
 }
 
 function Divider() { return <div className="dotted-divider my-6" />; }
@@ -676,55 +726,162 @@ function CartPanel({ cart, setCart, takeout, setTakeout, onCheckout }) {
   );
 }
 
-function AdminView({ state, setState }) {
-  const [authed, setAuthed] = useState(false);
-  const [pw, setPw] = useState('');
+function LoginView({ onLogin }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  if (!authed) {
-    return (
-      <div className="max-w-md mx-auto mt-10 soft-card p-8 text-center">
-        <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Admin</div>
-        <div className="font-display text-2xl mt-1">관리자 로그인</div>
-        <p className="text-xs ink-soft mt-2">기본 비밀번호: <span className="font-mono">stair</span> (배포 시 변경하세요)</p>
-        <input type="password" value={pw} onChange={e=>setPw(e.target.value)}
-               onKeyDown={e => e.key==='Enter' && (pw==='stair' ? setAuthed(true) : alert('비밀번호 오류'))}
-               className="mt-4 w-full border hairline rounded-md px-3 py-2 bg-paper" placeholder="비밀번호" />
-        <button onClick={()=> pw==='stair' ? setAuthed(true) : alert('비밀번호 오류')} className="btn btn-primary w-full justify-center mt-3">로그인</button>
-      </div>
-    );
-  }
+  const submit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const user = await api.login(username.trim(), password);
+      if (user) onLogin(user);
+      else setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+    } catch (err) {
+      setError('로그인 중 오류가 발생했습니다. 네트워크를 확인해주세요.');
+    }
+    setLoading(false);
+  };
 
-  const updateNote = (id, text) => setState({ ...state, notes: { ...state.notes, [id]: text } });
-  const updateGreeting = (text) => setState({ ...state, greeting: text });
+  return (
+    <div className="min-h-screen flex items-center justify-center px-5">
+      <form onSubmit={submit} className="soft-card p-8 w-full max-w-sm card-shadow">
+        <div className="font-stair text-2xl">STAiR</div>
+        <div className="text-[10px] tracking-[0.3em] text-gold mt-1">스테어 커피 · 매장 로그인</div>
+        <div className="font-display text-2xl mt-6 mb-5">로그인</div>
+        <div className="space-y-3">
+          <input
+            value={username} onChange={e=>setUsername(e.target.value)}
+            placeholder="아이디" autoComplete="username"
+            className="w-full border hairline rounded-lg px-3 py-2.5 bg-paper text-sm"
+          />
+          <input
+            type="password" value={password} onChange={e=>setPassword(e.target.value)}
+            placeholder="비밀번호" autoComplete="current-password"
+            className="w-full border hairline rounded-lg px-3 py-2.5 bg-paper text-sm"
+          />
+          {error && <div className="text-xs" style={{color:'var(--rose)'}}>{error}</div>}
+          <button type="submit" disabled={loading}
+            className={`btn btn-primary w-full justify-center ${loading?'opacity-60':''}`}>
+            {loading ? '확인 중...' : '로그인'}
+          </button>
+        </div>
+        <div className="text-[11px] ink-soft mt-6 text-center">
+          기본 관리자: <span className="font-mono">admin / admin</span>
+        </div>
+      </form>
+    </div>
+  );
+}
 
-  const resetAll = () => {
-    if (!confirm('사장님 한마디를 초기값으로 되돌립니다. 계속할까요?')) return;
-    setState({ ...state, notes: { ...defaultOwnerNotes }, greeting: defaultGreeting });
+function AdminView({ state, setState, session, onLogout }) {
+  const [newUser, setNewUser] = useState({ username: '', password: '', role: 'staff' });
+  const [userError, setUserError] = useState(null);
+
+  const updateNote = async (id, text) => {
+    setState(s => ({ ...s, notes: { ...s.notes, [id]: text } }));
+    try { await api.upsertNote(id, text); } catch (e) { alert('저장 실패: ' + e.message); }
+  };
+  const updateGreeting = async (text) => {
+    setState(s => ({ ...s, greeting: text }));
+    try { await api.setGreeting(text); } catch (e) { alert('저장 실패: ' + e.message); }
+  };
+
+  const addUser = async () => {
+    setUserError(null);
+    const u = newUser.username.trim();
+    const p = newUser.password;
+    if (!u || !p) { setUserError('아이디와 비밀번호를 입력하세요.'); return; }
+    try {
+      const created = await api.addUser(u, p, newUser.role);
+      setState(s => ({ ...s, users: [...s.users, created] }));
+      setNewUser({ username: '', password: '', role: 'staff' });
+    } catch (e) {
+      setUserError(e.code === '23505' ? '이미 존재하는 아이디입니다.' : ('추가 실패: ' + e.message));
+    }
+  };
+
+  const deleteUser = async (u) => {
+    if (u.username === session.username) { alert('현재 로그인된 계정은 삭제할 수 없습니다.'); return; }
+    if (!confirm(`${u.username} 계정을 삭제할까요?`)) return;
+    try {
+      await api.deleteUser(u.id);
+      setState(s => ({ ...s, users: s.users.filter(x => x.id !== u.id) }));
+    } catch (e) { alert('삭제 실패: ' + e.message); }
   };
 
   const exportJson = () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+    const payload = {
+      notes: state.notes, greeting: state.greeting, orders: state.orders,
+      users: state.users.map(u => ({ username: u.username, role: u.role, created_at: u.created_at })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = 'stair_admin_export.json'; a.click();
     URL.revokeObjectURL(url);
   };
 
-  const importJson = (ev) => {
-    const f = ev.target.files?.[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = () => {
-      try {
-        const p = JSON.parse(r.result);
-        setState({ ...state, ...p, notes: { ...defaultOwnerNotes, ...(p.notes||{}) } });
-        alert('가져오기 완료');
-      } catch(e) { alert('JSON 파싱 실패'); }
-    };
-    r.readAsText(f);
-  };
+  if (session.role !== 'admin') {
+    return (
+      <div className="max-w-md mx-auto mt-10 soft-card p-8 text-center">
+        <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Admin</div>
+        <div className="font-display text-2xl mt-1">관리자 권한 필요</div>
+        <p className="text-sm ink-soft mt-3">현재 로그인된 <b>{session.username}</b> 계정은 관리자 권한이 없습니다.</p>
+        <button onClick={onLogout} className="btn btn-outline mt-5">다른 계정으로 로그인</button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
+      <div className="soft-card p-6">
+        <div className="flex justify-between items-start gap-3 flex-wrap">
+          <div>
+            <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Users</div>
+            <div className="font-display text-2xl mt-1">사용자 관리</div>
+          </div>
+          <button onClick={exportJson} className="btn btn-outline">내보내기 (JSON)</button>
+        </div>
+
+        <div className="mt-5 space-y-2">
+          {state.users.length === 0 && <div className="text-sm ink-soft">사용자가 없습니다.</div>}
+          {state.users.map(u => (
+            <div key={u.id} className="flex items-center justify-between border hairline rounded-md p-3 bg-paper gap-3 flex-wrap">
+              <div>
+                <div className="font-medium">{u.username} {u.username === session.username && <span className="chip ml-1">나</span>}</div>
+                <div className="text-xs ink-soft mt-0.5">{u.role === 'admin' ? '관리자' : '직원'} · {new Date(u.created_at).toLocaleDateString('ko-KR')}</div>
+              </div>
+              <button onClick={() => deleteUser(u)} className="btn btn-outline text-sm">삭제</button>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 border-t hairline pt-5">
+          <div className="text-sm font-medium mb-3">새 사용자 추가</div>
+          <div className="flex flex-wrap gap-2">
+            <input
+              value={newUser.username} onChange={e=>setNewUser({...newUser, username:e.target.value})}
+              placeholder="아이디" className="border hairline rounded-md px-3 py-2 bg-paper text-sm flex-1 min-w-[140px]"
+            />
+            <input
+              type="password" value={newUser.password} onChange={e=>setNewUser({...newUser, password:e.target.value})}
+              placeholder="비밀번호" className="border hairline rounded-md px-3 py-2 bg-paper text-sm flex-1 min-w-[140px]"
+            />
+            <select value={newUser.role} onChange={e=>setNewUser({...newUser, role:e.target.value})}
+              className="border hairline rounded-md px-3 py-2 bg-paper text-sm">
+              <option value="staff">직원</option>
+              <option value="admin">관리자</option>
+            </select>
+            <button onClick={addUser} className="btn btn-primary">+ 추가</button>
+          </div>
+          {userError && <div className="text-xs mt-2" style={{color:'var(--rose)'}}>{userError}</div>}
+        </div>
+      </div>
+
       <div className="soft-card p-6">
         <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Greeting</div>
         <div className="font-display text-2xl mt-1 mb-2">사장님의 한마디 (메인 페이지)</div>
@@ -733,19 +890,8 @@ function AdminView({ state, setState }) {
       </div>
 
       <div className="soft-card p-6">
-        <div className="flex justify-between items-center flex-wrap gap-3 mb-4">
-          <div>
-            <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Per-Item Notes</div>
-            <div className="font-display text-2xl">원두별 사장님 한마디</div>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={exportJson} className="btn btn-outline">내보내기 (JSON)</button>
-            <label className="btn btn-outline cursor-pointer">가져오기
-              <input type="file" accept="application/json" className="hidden" onChange={importJson}/>
-            </label>
-            <button onClick={resetAll} className="btn btn-outline">초기화</button>
-          </div>
-        </div>
+        <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Per-Item Notes</div>
+        <div className="font-display text-2xl mt-1 mb-4">원두별 사장님 한마디</div>
 
         <div className="space-y-3">
           {[...CATALOG.brewing, ...CATALOG.decaf, ...CATALOG.blended].map(b => (
@@ -767,17 +913,17 @@ function AdminView({ state, setState }) {
 
       <div className="soft-card p-6">
         <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Orders</div>
-        <div className="font-display text-2xl mb-3">최근 주문 (로컬 기록)</div>
+        <div className="font-display text-2xl mt-1 mb-3">최근 주문</div>
         {state.orders.length === 0 && <div className="text-sm ink-soft">아직 주문이 없습니다.</div>}
         <div className="space-y-3">
-          {state.orders.slice().reverse().slice(0,30).map((o,i)=>(
+          {state.orders.slice(0,30).map((o,i)=>(
             <div key={i} className="border hairline rounded-md p-3 text-sm bg-paper">
               <div className="flex justify-between">
                 <div className="ink-soft text-xs">{new Date(o.at).toLocaleString('ko-KR')}</div>
                 <div className="font-display text-lg">{KRW(o.total)}</div>
               </div>
               <ul className="mt-2 text-sm list-disc pl-5">
-                {o.items.map((it,j)=><li key={j}>{it.name} × {it.qty} <span className="ink-soft text-xs">{optionLabel(it.options)}</span></li>)}
+                {(o.items || []).map((it,j)=><li key={j}>{it.name} × {it.qty} <span className="ink-soft text-xs">{optionLabel(it.options)}</span></li>)}
               </ul>
               {o.takeout && <div className="text-xs text-gold mt-1">테이크아웃</div>}
             </div>
@@ -869,14 +1015,33 @@ stair_admin_export.json  ← (선택) 관리자 내보낸 백업`}
 }
 
 function App() {
+  const [session, setSession] = useState(loadSession);
   const [tab, setTab] = useState('menu');
-  const [state, setState] = useState(loadState);
+  const [state, setState] = useState({ notes: {}, greeting: '', orders: [], users: [], loaded: false });
   const [activeBean, setActiveBean] = useState(null);
   const [cart, setCart] = useState([]);
   const [takeout, setTakeout] = useState(false);
   const [toast, setToast] = useState(null);
 
-  useEffect(() => { saveState(state); }, [state]);
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [notes, greeting, orders, users] = await Promise.all([
+          api.listNotes(),
+          api.getGreeting(),
+          api.listOrders(),
+          session.role === 'admin' ? api.listUsers() : Promise.resolve([]),
+        ]);
+        if (!cancelled) setState({ notes, greeting, orders, users, loaded: true });
+      } catch (e) {
+        console.error('데이터 로딩 실패', e);
+        if (!cancelled) setState(s => ({ ...s, loaded: true }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [session?.id]);
 
   const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(null), 1600); };
 
@@ -892,41 +1057,56 @@ function App() {
     showToast(`담김: ${entry.name}`);
   };
 
-  const checkout = () => {
+  const checkout = async () => {
     const subtotal = cart.reduce((s, it) => s + (it.basePrice + (it.options.iced?500:0)) * it.qty, 0);
     const eligible = cart.filter(it => !/리필|디저트|치즈케이크|토스트|주스/.test(it.name)).reduce((s,it)=>s+it.qty,0);
     const discount = takeout ? 1000 * eligible : 0;
     const total = Math.max(0, subtotal - discount);
     const order = { at: Date.now(), items: cart, total, takeout };
-    setState({ ...state, orders: [...state.orders, order] });
-    setCart([]); setTakeout(false);
-    alert(`주문이 접수되었습니다.\n총 금액: ${KRW(total)}\n카운터에서 호출까지 잠시만 기다려 주세요 :)`);
+    try {
+      await api.createOrder(order);
+      setState(s => ({ ...s, orders: [order, ...s.orders] }));
+      setCart([]); setTakeout(false);
+      alert(`주문이 접수되었습니다.\n총 금액: ${KRW(total)}\n카운터에서 호출까지 잠시만 기다려 주세요 :)`);
+    } catch (e) {
+      alert('주문 접수 실패: ' + e.message);
+    }
   };
+
+  const handleLogin = (user) => { saveSession(user); setSession(user); };
+  const handleLogout = () => { saveSession(null); setSession(null); setTab('menu'); };
+
+  if (!session) return <LoginView onLogin={handleLogin} />;
+
+  const navTabs = [['menu','메뉴 · 주문'], ['guide','사용 안내']];
+  if (session.role === 'admin') navTabs.push(['admin','관리자']);
 
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 bg-paper/90 backdrop-blur border-b hairline">
         <div className="max-w-[1400px] mx-auto px-5 md:px-8 py-4 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4">
-            <div>
-              <div className="font-stair text-2xl">STAiR</div>
-              <div className="text-[10px] tracking-[0.3em] text-gold">스테어 커피 · SIPHON CAFE</div>
+          <div>
+            <div className="font-stair text-2xl">STAiR</div>
+            <div className="text-[10px] tracking-[0.3em] text-gold">스테어 커피 · SIPHON CAFE</div>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <nav className="flex gap-2 flex-wrap">
+              {navTabs.map(([k,label]) => (
+                <button key={k} onClick={()=>setTab(k)} className={`btn ${tab===k?'btn-primary':'btn-outline'}`}>{label}</button>
+              ))}
+            </nav>
+            <div className="flex items-center gap-2 pl-3 border-l hairline">
+              <span className="text-xs ink-soft">{session.username} {session.role === 'admin' && <span className="chip ml-1">관리자</span>}</span>
+              <button onClick={handleLogout} className="btn btn-outline text-sm">로그아웃</button>
             </div>
           </div>
-          <nav className="flex gap-2 flex-wrap">
-            {[
-              ['menu','메뉴 · 주문'],
-              ['guide','사용 안내'],
-              ['admin','관리자'],
-            ].map(([k,label]) => (
-              <button key={k} onClick={()=>setTab(k)} className={`btn ${tab===k?'btn-primary':'btn-outline'}`}>{label}</button>
-            ))}
-          </nav>
         </div>
       </header>
 
       <main className="max-w-[1400px] mx-auto px-5 md:px-8 py-6 md:py-10">
-        {tab === 'menu' && (
+        {!state.loaded ? (
+          <div className="text-center py-20 ink-soft">데이터를 불러오는 중...</div>
+        ) : tab === 'menu' ? (
           <div className="grid lg:grid-cols-[1fr_360px] gap-8">
             <div>
               <MenuView
@@ -938,9 +1118,11 @@ function App() {
             </div>
             <CartPanel cart={cart} setCart={setCart} takeout={takeout} setTakeout={setTakeout} onCheckout={checkout} />
           </div>
-        )}
-        {tab === 'guide' && <GuideView />}
-        {tab === 'admin' && <AdminView state={state} setState={setState} />}
+        ) : tab === 'guide' ? (
+          <GuideView />
+        ) : tab === 'admin' ? (
+          <AdminView state={state} setState={setState} session={session} onLogout={handleLogout} />
+        ) : null}
       </main>
 
       {activeBean && <BeanModal bean={activeBean} ownerNote={state.notes[activeBean.id]} onClose={()=>setActiveBean(null)} onAdd={addToCart} />}
@@ -952,7 +1134,7 @@ function App() {
       )}
 
       <footer className="text-center text-xs ink-soft py-10">
-        STAiR 스테어 커피 · @stair_2025 · 사이폰 전문 · 이 대시보드는 현장에서 실행되는 단일 파일 앱입니다.
+        STAiR 스테어 커피 · @stair_2025 · 사이폰 전문 · Powered by Supabase
       </footer>
     </div>
   );
