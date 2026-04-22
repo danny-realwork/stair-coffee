@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>STAiR 스테어 커피</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+<style>
+  :root {
+    --paper: #fafaf9;
+    --paper-2: #f4f4f5;
+    --ink: #18181b;
+    --ink-soft: #71717a;
+    --gold: #a16207;
+    --gold-2: #ca8a04;
+    --rose: #9f1239;
+    --line: #e4e4e7;
+  }
+  html, body { background: var(--paper); color: var(--ink); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  body { font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', sans-serif; word-break: keep-all; overflow-wrap: break-word; }
+  .font-display { font-family: inherit; letter-spacing: -0.02em; font-weight: 600; }
+  .font-stair { font-family: inherit; letter-spacing: 0.22em; font-weight: 700; }
+  .hairline { border-color: var(--line); }
+  .ink { color: var(--ink); }
+  .ink-soft { color: var(--ink-soft); }
+  .bg-paper { background: var(--paper); }
+  .bg-paper-2 { background: var(--paper-2); }
+  .text-gold { color: var(--gold); }
+  .border-gold { border-color: var(--gold); }
+  .bg-gold { background: var(--gold); }
+  .dotted-divider { height: 1px; background: var(--line); }
+  .card-shadow { box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .chip { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line); background: #ffffff; color: var(--ink-soft); letter-spacing: 0; font-weight: 500; }
+  .chip-strong { background: var(--ink); color: #ffffff; border-color: var(--ink); }
+  .chip-gold { background: #fef3c7; color: #78350f; border-color: #fde68a; }
+  .chip-rose { background: #ffe4e6; color: #9f1239; border-color: #fecdd3; }
+  .chip-blue { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+  .chip-green { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+  .btn { display:inline-flex; align-items:center; gap:6px; border-radius:8px; padding:10px 16px; font-weight:500; transition: all .15s ease; font-size: 14px; }
+  .btn-primary { background: var(--ink); color: #ffffff; }
+  .btn-primary:hover { background:#000; }
+  .btn-outline { background: transparent; color: var(--ink); border:1px solid var(--line); }
+  .btn-outline:hover { background: var(--paper-2); border-color: var(--ink); }
+  .tab-active { background: var(--ink); color: #ffffff; }
+  .soft-card { background: #ffffff; border: 1px solid var(--line); border-radius: 12px; }
+  .bean-card { transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+  .bean-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px -12px rgba(0,0,0,0.12); border-color: var(--ink); }
+  .modal-bg { background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); }
+  .scroll-hide::-webkit-scrollbar { display: none; }
+  .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .taste-bar { height: 4px; border-radius: 999px; background: var(--paper-2); overflow: hidden; }
+  .taste-bar > span { display: block; height: 100%; background: var(--ink); }
+  .stamp {
+    display: inline-block; padding: 3px 10px; border: 1px solid var(--line); color: var(--ink-soft);
+    border-radius: 4px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    background: #ffffff; font-weight: 500;
+  }
+  .owner-box {
+    background: var(--paper-2);
+    border-left: 2px solid var(--ink);
+    border-radius: 8px; padding: 14px 16px;
+  }
+  .grain { background: var(--paper); }
+  input, select, textarea { font-family: inherit; }
+  input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+</style>
+</head>
+<body class="min-h-screen grain">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo, useRef } = React;
+
+const KRW = (n) => new Intl.NumberFormat('ko-KR').format(n) + '원';
+
+const CATALOG = {
+  desserts: [
+    { id: 'd1', name: '미니 토스트와 수제 콩포트', price: 7000, note: '따뜻한 브리오슈에 계절 과일 콩포트.' },
+    { id: 'd2', name: '믹스 베리 치즈케이크', price: 7500, note: '산미 있는 커피와의 페어링 추천.' },
+  ],
+  brewing: [
+    {
+      id: 'b1', name: '온두라스 산타 루시아 파라이네마 워시드', price: 8500,
+      origin: '온두라스 / 산타 바르바라', variety: 'Parainema (Lempira 파생종)',
+      process: 'Washed (워시드)', altitude: '1,400–1,600m',
+      body: 2, acid: 2, sweet: 3, balance: 4,
+      notes: ['밀크초콜릿', '헤이즐넛', '건포도', '홍차'],
+      whenMoods: ['업무 집중', '데일리', '독서'],
+      expert: '부드러운 바디와 안정된 단맛이 매력적인 입문자 친화 스페셜티. 사이폰으로 내리면 헤이즐넛의 견과 향이 뚜렷이 올라옵니다.',
+      tagline: '편안한 데일리, 은은한 초콜릿', difficulty: '입문', color: '#b38a5f',
+    },
+    {
+      id: 'b2', name: '코스타리카 볼칸 아줄 산 이시드로 내추럴', price: 9000,
+      origin: '코스타리카 / 웨스트 밸리', variety: 'Villa Sarchi · Caturra',
+      process: 'Natural (내추럴)', altitude: '1,500–1,700m',
+      body: 4, acid: 3, sweet: 4, balance: 3,
+      notes: ['딸기잼', '레드와인', '카카오닙', '시럽'],
+      whenMoods: ['디저트 페어링', '로맨틱', '주말 저녁'],
+      expert: '내추럴 특유의 발효된 과실 단맛과 와이니한 피니쉬. 베리 치즈케이크와 페어링하면 과실감이 배가됩니다.',
+      tagline: '와인 같은 달달함, 저녁의 여운', difficulty: '중급', color: '#8c3a44',
+    },
+    {
+      id: 'b3', name: '과테말라 엘 소코로 파카마라 워시드', price: 9500,
+      origin: '과테말라 / 산타 로사', variety: 'Pacamara (대형 원두)',
+      process: 'Washed (워시드)', altitude: '1,700–1,900m',
+      body: 3, acid: 4, sweet: 3, balance: 4,
+      notes: ['자몽', '자스민', '흑설탕', '라임 제스트'],
+      whenMoods: ['브런치', '맑은 오후', '친구와의 수다'],
+      expert: '파카마라 종 특유의 크리미한 질감과 깨끗한 산미. 식으면서 꽃 향이 더욱 피어오르는 타입입니다.',
+      tagline: '햇살 좋은 브런치에 어울리는 꽃향', difficulty: '중급', color: '#cda85d',
+    },
+    {
+      id: 'b4', name: '에티오피아 구지 함벨라 단세 사이야 내추럴', price: 10000,
+      origin: '에티오피아 / 구지 함벨라', variety: 'Heirloom (에티오피아 토종)',
+      process: 'Natural (내추럴)', altitude: '1,900–2,200m',
+      body: 4, acid: 3, sweet: 5, balance: 4,
+      notes: ['블루베리', '다크체리', '밀크초콜릿', '와인'],
+      whenMoods: ['비 오는 날', '디저트와 함께', '혼자만의 시간'],
+      expert: '구지 내추럴의 정석. 진한 베리 뉘앙스가 초콜릿과 만나 깊은 단맛으로 마무리됩니다.',
+      tagline: '비 오는 날 생각나는 베리 초콜릿', difficulty: '중급', color: '#5a3a6b',
+    },
+    {
+      id: 'b5', name: '에티오피아 예가체프 보타바 셀렉션 워시드', price: 10500,
+      origin: '에티오피아 / 예가체프 보타바', variety: 'Heirloom',
+      process: 'Washed (워시드)', altitude: '2,000–2,200m',
+      body: 2, acid: 5, sweet: 4, balance: 4,
+      notes: ['레몬', '자스민', '홍차', '화이트피치'],
+      whenMoods: ['아침 공복', '맑은 날', '기분 전환'],
+      expert: '예가체프 워시드의 교과서. 홍차 같은 깔끔한 텍스처와 감귤류 산미가 하루를 상쾌하게 엽니다.',
+      tagline: '맑은 아침을 여는 레몬과 홍차', difficulty: '입문', color: '#e0b24a',
+    },
+    {
+      id: 'b6', name: '케냐 키암부 모랑 더블에이 탑 워시드', price: 11000,
+      origin: '케냐 / 키암부', variety: 'SL28 · SL34',
+      process: 'Double Washed (케냐 방식)', altitude: '1,700–1,900m',
+      body: 4, acid: 5, sweet: 3, balance: 3,
+      notes: ['블랙커런트', '토마토', '자몽', '케인슈거'],
+      whenMoods: ['오후 각성', '도시적 무드', '리프레시'],
+      expert: '케냐 AA 답게 강렬한 산미와 묵직한 바디의 대비. 잠을 깨우는 한 잔으로 탁월합니다.',
+      tagline: '정신 번쩍, 케냐 블랙커런트', difficulty: '중급', color: '#6c1f2e',
+    },
+    {
+      id: 'b7', name: '콜롬비아 포토시 트레스 드래곤즈 내추럴', price: 11500,
+      origin: '콜롬비아 / 우일라', variety: 'Castillo · Colombia',
+      process: 'Natural (내추럴)', altitude: '1,700–1,900m',
+      body: 4, acid: 3, sweet: 5, balance: 4,
+      notes: ['딸기', '메이플 시럽', '럼', '카라멜'],
+      whenMoods: ['늦은 오후 디저트 대용', '아늑한 바', '휴식'],
+      expert: '내추럴의 시럽 같은 단맛이 일품. 디저트 한 조각 대신 선택해도 만족스러운 풍미.',
+      tagline: '디저트가 필요 없는 시럽 단맛', difficulty: '중급', color: '#b24a2f',
+    },
+    {
+      id: 'b8', name: '파나마 모건 에이릴 게이샤 워시드(하치)', price: 12000,
+      origin: '파나마 / 보케테', variety: 'Geisha (게이샤)',
+      process: 'Washed (워시드)', altitude: '1,600–1,800m',
+      body: 2, acid: 4, sweet: 4, balance: 5,
+      notes: ['베르가못', '자스민', '꿀', '열대과일'],
+      whenMoods: ['특별한 오전', '대화 없는 감상', '선물 같은 한 잔'],
+      expert: '파나마 게이샤의 섬세한 꽃향과 베르가못의 시그니처. 향을 오래 음미할 수 있도록 천천히 드세요.',
+      tagline: '향기로 마시는 게이샤, 선물 같은 순간', difficulty: '고급', color: '#b48b3a',
+    },
+    {
+      id: 'b9', name: '에티오피아 타이투 알로 내추럴 리미티드 랏', price: 15000,
+      origin: '에티오피아 / 예가체프 (Limited)', variety: 'Heirloom',
+      process: 'Natural · Limited Lot', altitude: '2,100m+',
+      body: 3, acid: 5, sweet: 5, balance: 4,
+      notes: ['라즈베리', '시트러스', '플로럴', '화이트와인'],
+      whenMoods: ['단독 테이스팅', '커피 입문 마니아', '조용한 오후'],
+      expert: '한정 수량으로 입고되는 리미티드 랏. 과즙 같은 질감과 복합적인 과실미가 특징입니다.',
+      tagline: '단독 테이스팅을 위한 리미티드', difficulty: '고급', color: '#d24e66',
+    },
+    {
+      id: 'b10', name: '과테말라 엘 인헤르또 게이샤 워시드', price: 17000,
+      origin: '과테말라 / 우에우에테낭고', variety: 'Geisha (게이샤)',
+      process: 'Washed (워시드)', altitude: '1,800–2,000m',
+      body: 2, acid: 4, sweet: 5, balance: 5,
+      notes: ['꿀', '자스민', '망고', '화이트피치'],
+      whenMoods: ['기념일', '귀한 손님', '감상하는 커피'],
+      expert: '세계적 명문 엘 인헤르또의 게이샤. 실크 같은 질감과 꿀 같은 단맛이 우아하게 이어집니다.',
+      tagline: '기념일에 어울리는 우아한 꿀', difficulty: '고급', color: '#d4a840',
+    },
+    {
+      id: 'b11', name: '콜롬비아 파라이소92 게이샤 싱글 애너로빅', price: 19000,
+      origin: '콜롬비아 / 파라이소 92 농장', variety: 'Geisha (게이샤)',
+      process: 'Anaerobic (싱글 애너로빅)', altitude: '1,700–1,900m',
+      body: 4, acid: 4, sweet: 5, balance: 4,
+      notes: ['리치', '망고', '장미', '샴페인'],
+      whenMoods: ['새로운 경험', '커피 마니아', '실험적 무드'],
+      expert: '무산소 발효가 만들어낸 강렬한 열대 과실과 장미향. 디저트 페어링보다 단독으로 추천합니다.',
+      tagline: '무산소 발효의 샴페인 같은 한 잔', difficulty: '고급', color: '#b22c6c',
+    },
+  ],
+  decaf: [
+    {
+      id: 'dc1', name: '에티오피아 시다모 마운틴워터 프로세스 (디카페인)', price: 8000,
+      origin: '에티오피아 / 시다모', variety: 'Heirloom',
+      process: 'Mountain Water Decaf (화학약품 無)', altitude: '1,800–2,000m',
+      body: 3, acid: 3, sweet: 4, balance: 4,
+      notes: ['다크초콜릿', '헤이즐넛', '오렌지'],
+      whenMoods: ['늦은 저녁', '임산부', '카페인 민감'],
+      expert: '마운틴워터 공법으로 향미 손실을 최소화. 저녁에도 편하게 즐길 수 있는 깔끔한 디카페인.',
+      tagline: '저녁에도 편한 깔끔한 디카페인', difficulty: '입문', color: '#6b4a2e',
+    },
+  ],
+  blended: [
+    {
+      id: 'bl1', name: '스테어 블렌드', price: 7000, hasRoastOption: true,
+      origin: '스테어 시그니처 블렌드', variety: 'Blend',
+      process: 'Roast Option', body: 3, acid: 3, sweet: 4, balance: 5,
+      notes: ['초콜릿', '캐러멜', '넛츠'],
+      whenMoods: ['데일리', '디저트 페어링', '편한 한 잔'],
+      expert: '로스팅을 라이트/미디엄/다크 중 선택할 수 있는 스테어의 시그니처. 취향에 맞춰 매일 즐기세요.',
+      tagline: '로스팅 선택이 가능한 시그니처', difficulty: '입문', color: '#6e4a28',
+    },
+  ],
+  espresso: [
+    { id: 'e1', name: '아메리카노', price: 5500 },
+    { id: 'e2', name: '카페 라떼 / 카푸치노', price: 6500, option: [ { label: '카페 라떼', value: 'latte'}, {label:'카푸치노', value:'cappuccino'} ] },
+  ],
+  refill: [
+    { id: 'r1', name: '+ 리필 커피 (스테어 블렌드)', price: 3000, hasRoastOption: true, refill: true },
+  ],
+  tea: [
+    { id: 't1', name: '프리스티지 프렌치 라벤더', price: 10000, note: '은은한 라벤더와 홍차의 우아한 블렌드.' },
+    { id: 't2', name: '부띠크 카모마일', price: 9000, note: '하루의 마무리, 편안한 꽃차.' },
+    { id: 't3', name: '페퍼민트 (디카페인)', price: 8000, note: '식후 개운한 민트 티, 디카페인.' },
+  ],
+  drinks: [
+    { id: 'dr1', name: '기력 회복', price: 9500, note: '사장님표 에너지 음료.' },
+    { id: 'dr2', name: '수제 콜라', price: 8000, note: '직접 만든 향신료 베이스.' },
+    { id: 'dr3', name: '베리 에이드', price: 8000, note: '베리류 듬뿍, 상큼한 에이드.' },
+  ],
+  kids: [
+    { id: 'k1', name: '사과 주스 (영·유아 전용)', price: 5000, note: '100% 사과 주스.' },
+  ],
+};
+
+const LS_KEY = 'stair_v1_state';
+const defaultOwnerNotes = {
+  b1: '바닐라 아이스크림 한 스쿱 곁들여 드셔보세요. 평일 오후 지친 몸을 달래주는 친구 같은 커피예요.',
+  b2: '치즈케이크와 페어링하면 과실감이 두 배로 터집니다. 주말 저녁 한 잔 추천!',
+  b3: '햇살 좋은 낮에 창가 자리에서 드시길. 식으면서 꽃향이 더 확 살아나요.',
+  b4: '비 오는 날 제일 먼저 찾는 원두. 진하고 달콤한 베리향이 마음을 녹여줍니다.',
+  b5: '아침 공복에 가장 어울리는 원두예요. 홍차처럼 깔끔해서 속에 부담도 덜합니다.',
+  b6: '잠이 안 깰 때, 오후 미팅 직전에 드셔보세요. 블랙커런트의 생기가 즉효약입니다.',
+  b7: '디저트 대신 한 잔. 단맛이 충분해서 당 충전이 됩니다.',
+  b8: '사이폰으로 천천히 내리는 게 맛의 핵심. 향을 오래 잡아두고 천천히 즐기세요.',
+  b9: '한정 수량입니다. 품절 전에 꼭 한 번 드셔보세요.',
+  b10: '기념일이나 생일 선물 같은 한 잔. 특별한 순간을 위해 준비된 원두입니다.',
+  b11: '새로운 경험을 원하시는 분께. 발효 뉘앙스가 강해서 처음 드시면 놀라실 거예요.',
+  dc1: '저녁 8시 이후에도 편하게. 마운틴워터 공법이라 향미도 또렷합니다.',
+  bl1: '오늘 기분에 맞춰 라이트 / 미디엄 / 다크를 골라보세요. 아침엔 라이트, 식후엔 미디엄, 디저트엔 다크를 추천.',
+};
+const defaultGreeting = '안녕하세요, 스테어의 사장입니다. 저는 사이폰으로 원두의 가장 맑은 얼굴을 보여드리는 걸 좋아합니다. 오늘의 기분이나 시간에 맞는 원두를 골라드릴게요. 잘 모르시면 언제든 말씀 주세요 :)';
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return { notes: {...defaultOwnerNotes}, greeting: defaultGreeting, orders: [] };
+    const p = JSON.parse(raw);
+    return {
+      notes: { ...defaultOwnerNotes, ...(p.notes || {}) },
+      greeting: p.greeting || defaultGreeting,
+      orders: p.orders || [],
+    };
+  } catch(e) {
+    return { notes: {...defaultOwnerNotes}, greeting: defaultGreeting, orders: [] };
+  }
+}
+function saveState(s) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch(e){}
+}
+
+function Divider() { return <div className="dotted-divider my-6" />; }
+
+function SectionTitle({ en, ko, sub }) {
+  return (
+    <div className="flex items-end justify-between mb-5">
+      <div>
+        <div className="font-display text-xs tracking-[0.35em] text-gold uppercase">{en}</div>
+        <div className="font-display text-3xl md:text-4xl mt-1 ink">{ko}</div>
+      </div>
+      {sub && <div className="text-xs ink-soft italic">{sub}</div>}
+    </div>
+  );
+}
+
+function Rating({ value, max = 5, label }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[11px] ink-soft w-14">{label}</span>
+      <div className="taste-bar flex-1"><span style={{ width: `${(value/max)*100}%` }} /></div>
+      <span className="text-[11px] ink-soft w-5 text-right">{value}</span>
+    </div>
+  );
+}
+
+function DifficultyChip({ level }) {
+  const cls = level === '입문' ? 'chip chip-green' : level === '중급' ? 'chip chip-gold' : 'chip chip-rose';
+  return <span className={cls}>{level}</span>;
+}
+
+const DEFAULT_OPTIONS = { iced: false, roast: null, subtype: null };
+function sameOptions(a, b) { return a.iced === b.iced && a.roast === b.roast && a.subtype === b.subtype; }
+function optionLabel(o) {
+  const bits = [];
+  if (o.roast) bits.push(o.roast);
+  if (o.subtype) bits.push(o.subtype);
+  if (o.iced) bits.push('아이스');
+  return bits.join(' · ');
+}
+
+function BeanModal({ bean, ownerNote, onClose, onAdd }) {
+  const [iced, setIced] = useState(false);
+  const [roast, setRoast] = useState(bean.hasRoastOption ? '미디엄' : null);
+  const [subtype, setSubtype] = useState(bean.option ? bean.option[0].label : null);
+  const priced = bean.price + (iced ? 500 : 0);
+
+  return (
+    <div className="fixed inset-0 z-50 modal-bg flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-paper rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-y-auto card-shadow" onClick={e => e.stopPropagation()}>
+        <div className="p-6 md:p-8">
+          <div className="flex justify-between items-start gap-4">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="chip chip-strong">{bean.process?.split(' ')[0] || 'COFFEE'}</span>
+                {bean.difficulty && <DifficultyChip level={bean.difficulty} />}
+                <span className="chip">{bean.origin?.split(' / ')[0]}</span>
+              </div>
+              <h2 className="font-display text-3xl md:text-4xl mt-3 leading-tight">{bean.name}</h2>
+              {bean.tagline && <p className="ink-soft mt-2 italic">"{bean.tagline}"</p>}
+            </div>
+            <button onClick={onClose} className="rounded-full w-9 h-9 border hairline hover:bg-paper-2">✕</button>
+          </div>
+
+          <Divider />
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <div className="font-display tracking-[0.25em] text-xs text-gold mb-3">ORIGIN & PROCESS</div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="ink-soft">산지</span><span>{bean.origin}</span></div>
+                <div className="flex justify-between"><span className="ink-soft">품종</span><span>{bean.variety}</span></div>
+                <div className="flex justify-between"><span className="ink-soft">가공</span><span>{bean.process}</span></div>
+                {bean.altitude && <div className="flex justify-between"><span className="ink-soft">고도</span><span>{bean.altitude}</span></div>}
+              </div>
+
+              <div className="font-display tracking-[0.25em] text-xs text-gold mt-6 mb-3">TASTING NOTES</div>
+              <div className="flex flex-wrap gap-2">
+                {bean.notes?.map(n => <span key={n} className="chip chip-gold">{n}</span>)}
+              </div>
+
+              <div className="font-display tracking-[0.25em] text-xs text-gold mt-6 mb-3">추천 타이밍</div>
+              <div className="flex flex-wrap gap-2">
+                {bean.whenMoods?.map(n => <span key={n} className="chip chip-blue">{n}</span>)}
+              </div>
+            </div>
+
+            <div>
+              <div className="font-display tracking-[0.25em] text-xs text-gold mb-3">FLAVOR PROFILE</div>
+              <div className="soft-card p-4 space-y-2">
+                <Rating label="바디" value={bean.body || 3} />
+                <Rating label="산미" value={bean.acid || 3} />
+                <Rating label="단맛" value={bean.sweet || 3} />
+                <Rating label="밸런스" value={bean.balance || 3} />
+              </div>
+
+              <div className="mt-5 owner-box">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="stamp">사장님 한마디</span>
+                </div>
+                <p className="text-sm leading-relaxed">{ownerNote || bean.expert}</p>
+              </div>
+            </div>
+          </div>
+
+          <Divider />
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <div className="font-display tracking-[0.25em] text-xs text-gold mb-3">옵션</div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between soft-card px-4 py-3">
+                  <div>
+                    <div className="font-medium">아이스 옵션</div>
+                    <div className="text-xs ink-soft">차가운 버전 + 500원</div>
+                  </div>
+                  <button onClick={()=>setIced(v=>!v)} className={`w-12 h-7 rounded-full relative transition ${iced? 'bg-gold' : 'bg-paper-2'}`}>
+                    <span className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition ${iced?'translate-x-5':''}`} />
+                  </button>
+                </div>
+                {bean.hasRoastOption && (
+                  <div className="soft-card px-4 py-3">
+                    <div className="font-medium mb-2">로스팅 선택</div>
+                    <div className="flex gap-2">
+                      {['라이트','미디엄','다크'].map(r => (
+                        <button key={r} onClick={()=>setRoast(r)} className={`flex-1 btn ${roast===r?'btn-primary':'btn-outline'} justify-center`}>{r}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {bean.option && (
+                  <div className="soft-card px-4 py-3">
+                    <div className="font-medium mb-2">세부 선택</div>
+                    <div className="flex gap-2">
+                      {bean.option.map(o => (
+                        <button key={o.value} onClick={()=>setSubtype(o.label)} className={`flex-1 btn ${subtype===o.label?'btn-primary':'btn-outline'} justify-center`}>{o.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col justify-between">
+              <div className="soft-card p-4">
+                <div className="font-display tracking-[0.25em] text-xs text-gold mb-2">SIPHON TIP</div>
+                <p className="text-sm leading-relaxed ink-soft">
+                  사이폰은 진공 원리로 향을 깨끗이 뽑아내는 추출법입니다. 이 원두는 <b>{bean.process?.includes('Natural') ? '내추럴' : '워시드'}</b>의 특성을 살려 {bean.notes?.[0]} 노트를 강조해 추출합니다. 식으면서 맛이 달라지니 천천히 드셔보세요.
+                </p>
+              </div>
+              <div className="mt-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs ink-soft">최종 가격</div>
+                  <div className="font-display text-3xl">{KRW(priced)}</div>
+                </div>
+                <button
+                  onClick={() => onAdd({ id: bean.id, name: bean.name, basePrice: bean.price, options: { iced, roast, subtype } })}
+                  className="btn btn-primary"
+                >장바구니에 담기 →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BeanCard({ bean, onClick, ownerNote }) {
+  return (
+    <button onClick={onClick} className="bean-card soft-card text-left p-5 w-full card-shadow">
+      <div className="flex items-start justify-between">
+        <div className="flex-1 pr-3">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {bean.difficulty && <DifficultyChip level={bean.difficulty} />}
+            <span className="chip">{bean.process?.split(' ')[0]}</span>
+          </div>
+          <h3 className="font-display text-xl md:text-[22px] leading-snug mt-2">{bean.name}</h3>
+          {bean.tagline && <p className="text-[13px] ink-soft italic mt-1">"{bean.tagline}"</p>}
+        </div>
+        <div className="w-10 h-10 rounded-full shrink-0" style={{ background: bean.color || '#8a6a44' }} />
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {bean.notes?.slice(0,3).map(n => <span key={n} className="chip chip-gold">{n}</span>)}
+      </div>
+
+      {ownerNote && (
+        <p className="mt-3 text-[12px] leading-relaxed px-3 py-2 rounded-md"
+           style={{ background:'#fff6e5', borderLeft:'2px solid var(--gold)', color:'#5b4a3a' }}>
+          <b className="text-gold">사장님 한마디 ·</b> {ownerNote.length > 70 ? ownerNote.slice(0,68)+'…' : ownerNote}
+        </p>
+      )}
+
+      <div className="mt-4 flex items-center justify-between">
+        <div className="text-xs ink-soft">자세히 보기 →</div>
+        <div className="font-display text-2xl">{KRW(bean.price)}</div>
+      </div>
+    </button>
+  );
+}
+
+function ItemRow({ item, onAdd }) {
+  const [iced, setIced] = useState(false);
+  const [roast, setRoast] = useState(item.hasRoastOption ? '미디엄' : null);
+  const [subtype, setSubtype] = useState(item.option ? item.option[0].label : null);
+  const priced = item.price + (iced ? 500 : 0);
+  const icedAllowed = item.category !== 'dessert';
+
+  return (
+    <div className="soft-card p-4 flex flex-col gap-3">
+      <div className="min-w-0">
+        <div className="font-display text-lg md:text-xl leading-snug">{item.name}</div>
+        {item.note && <div className="text-xs ink-soft mt-1">{item.note}</div>}
+        <div className="flex flex-wrap gap-2 mt-2">
+          {item.hasRoastOption && ['라이트','미디엄','다크'].map(r => (
+            <button key={r} onClick={()=>setRoast(r)} className={`chip ${roast===r?'chip-strong':''}`}>{r}</button>
+          ))}
+          {item.option && item.option.map(o => (
+            <button key={o.value} onClick={()=>setSubtype(o.label)} className={`chip ${subtype===o.label?'chip-strong':''}`}>{o.label}</button>
+          ))}
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-3 flex-wrap pt-2 border-t hairline">
+        {icedAllowed ? (
+          <label className="flex items-center gap-2 text-xs ink-soft">
+            <input type="checkbox" checked={iced} onChange={e=>setIced(e.target.checked)} /> 아이스 (+500)
+          </label>
+        ) : <span />}
+        <div className="flex items-center gap-3">
+          <div className="font-display text-xl">{KRW(priced)}</div>
+          <button className="btn btn-primary" onClick={() => onAdd({ id: item.id, name: item.name, basePrice: item.price, options: { iced: icedAllowed ? iced : false, roast, subtype } })}>+ 담기</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MenuView({ notes, greeting, onAdd, setActiveBean }) {
+  const [filter, setFilter] = useState('전체');
+  const filters = ['전체','입문','중급','고급','워시드','내추럴','디카페인','한정'];
+
+  const matchFilter = (b) => {
+    if (filter === '전체') return true;
+    if (filter === '입문' || filter === '중급' || filter === '고급') return b.difficulty === filter;
+    if (filter === '워시드') return /Washed/.test(b.process);
+    if (filter === '내추럴') return /Natural/.test(b.process);
+    if (filter === '디카페인') return /Decaf|디카페인/.test(b.process);
+    if (filter === '한정') return /Limited|Anaerobic|애너로빅/.test(b.process);
+    return true;
+  };
+
+  return (
+    <div className="space-y-12">
+      <section>
+        <div className="soft-card p-6 md:p-8 relative overflow-hidden">
+          <div className="absolute -right-4 top-4 stamp">since 2023 · siphon</div>
+          <div className="font-display text-xs tracking-[0.35em] text-gold uppercase">Owner's Note</div>
+          <div className="font-display text-2xl md:text-3xl mt-2">사장님의 한마디</div>
+          <p className="mt-4 text-sm md:text-base leading-relaxed max-w-3xl">{greeting}</p>
+        </div>
+      </section>
+
+      <section>
+        <SectionTitle en="BREWING · SIPHON" ko="브루잉 커피 · 싱글 오리진" sub="차가운 추출 +500원" />
+        <div className="flex gap-2 overflow-x-auto scroll-hide pb-2 mb-4">
+          {filters.map(f => (
+            <button key={f} onClick={()=>setFilter(f)} className={`chip ${filter===f?'chip-strong':''}`}>{f}</button>
+          ))}
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {CATALOG.brewing.filter(matchFilter).map(b => (
+            <BeanCard key={b.id} bean={b} ownerNote={notes[b.id]} onClick={()=>setActiveBean(b)} />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <SectionTitle en="DECAF BREWING" ko="디카페인 커피" sub="늦은 저녁, 카페인 민감 고객" />
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {CATALOG.decaf.map(b => (
+            <BeanCard key={b.id} bean={b} ownerNote={notes[b.id]} onClick={()=>setActiveBean(b)} />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <SectionTitle en="SIGNATURE BLEND" ko="블렌디드 커피" sub="로스팅 선택 가능" />
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {CATALOG.blended.map(b => (
+            <BeanCard key={b.id} bean={b} ownerNote={notes[b.id]} onClick={()=>setActiveBean(b)} />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <SectionTitle en="ESPRESSO & REFILL" ko="에스프레소 · 리필" sub="리필은 매장에서만" />
+        <div className="grid md:grid-cols-2 gap-3">
+          {CATALOG.espresso.map(i => <ItemRow key={i.id} item={i} onAdd={onAdd} />)}
+          {CATALOG.refill.map(i => <ItemRow key={i.id} item={i} onAdd={onAdd} />)}
+        </div>
+      </section>
+
+      <section>
+        <SectionTitle en="TEA" ko="차" />
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {CATALOG.tea.map(i => <ItemRow key={i.id} item={i} onAdd={onAdd} />)}
+        </div>
+      </section>
+
+      <section>
+        <SectionTitle en="DRINKS" ko="음료" />
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {CATALOG.drinks.map(i => <ItemRow key={i.id} item={i} onAdd={onAdd} />)}
+        </div>
+      </section>
+
+      <section>
+        <SectionTitle en="DESSERT" ko="디저트" sub="디저트와 리필 커피는 테이크 아웃 불가" />
+        <div className="grid md:grid-cols-2 gap-3">
+          {CATALOG.desserts.map(i => <ItemRow key={i.id} item={{...i, category:'dessert'}} onAdd={onAdd} />)}
+        </div>
+      </section>
+
+      <section>
+        <SectionTitle en="FOR KIDS" ko="영·유아 전용 음료" />
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {CATALOG.kids.map(i => <ItemRow key={i.id} item={i} onAdd={onAdd} />)}
+        </div>
+      </section>
+
+      <div className="text-center text-xs ink-soft py-6">
+        ※ 테이크 아웃 1,000원 할인 (디저트와 리필 커피는 테이크 아웃 불가)
+      </div>
+    </div>
+  );
+}
+
+function CartPanel({ cart, setCart, takeout, setTakeout, onCheckout }) {
+  const subtotal = cart.reduce((s, it) => s + (it.basePrice + (it.options.iced?500:0)) * it.qty, 0);
+  const eligibleCount = takeout ? cart.filter(it => !/리필|디저트|치즈케이크|토스트|주스/.test(it.name)).reduce((s,it)=>s+it.qty,0) : 0;
+  const discount = takeout ? 1000 * eligibleCount : 0;
+  const total = Math.max(0, subtotal - discount);
+
+  const dec = (i) => setCart(cart.map((it,idx) => idx===i ? {...it, qty: Math.max(1, it.qty-1)} : it));
+  const inc = (i) => setCart(cart.map((it,idx) => idx===i ? {...it, qty: it.qty+1} : it));
+  const rm  = (i) => setCart(cart.filter((_,idx)=>idx!==i));
+
+  return (
+    <aside className="soft-card p-5 lg:sticky lg:top-4 h-fit">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Your Order</div>
+          <div className="font-display text-2xl">주문 내역</div>
+        </div>
+        <div className="chip chip-strong">{cart.reduce((s,i)=>s+i.qty,0)} 잔</div>
+      </div>
+
+      <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1 scroll-hide">
+        {cart.length === 0 && <div className="text-sm ink-soft text-center py-8">담긴 메뉴가 없습니다.<br/>원하는 원두를 탭해 주세요.</div>}
+        {cart.map((it, i) => {
+          const unit = it.basePrice + (it.options.iced?500:0);
+          return (
+            <div key={i} className="pb-3 border-b hairline">
+              <div className="flex justify-between items-start gap-2">
+                <div className="flex-1">
+                  <div className="font-medium text-sm">{it.name}</div>
+                  <div className="text-[11px] ink-soft">{optionLabel(it.options) || '옵션 없음'}</div>
+                </div>
+                <button onClick={()=>rm(i)} className="text-xs ink-soft">✕</button>
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <div className="flex items-center gap-2">
+                  <button onClick={()=>dec(i)} className="w-7 h-7 rounded-full border hairline">−</button>
+                  <span className="w-6 text-center text-sm">{it.qty}</span>
+                  <button onClick={()=>inc(i)} className="w-7 h-7 rounded-full border hairline">+</button>
+                </div>
+                <div className="font-display text-lg">{KRW(unit * it.qty)}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={takeout} onChange={e=>setTakeout(e.target.checked)} />
+          테이크 아웃 (음료당 1,000원 할인 · 디저트/리필 제외)
+        </label>
+      </div>
+
+      <div className="mt-4 space-y-1 text-sm">
+        <div className="flex justify-between"><span className="ink-soft">소계</span><span>{KRW(subtotal)}</span></div>
+        {takeout && <div className="flex justify-between text-gold"><span>테이크아웃 할인</span><span>- {KRW(discount)}</span></div>}
+      </div>
+      <div className="mt-2 flex justify-between items-baseline">
+        <span className="font-display text-sm ink-soft">TOTAL</span>
+        <span className="font-display text-3xl">{KRW(total)}</span>
+      </div>
+      <button disabled={cart.length===0} onClick={onCheckout} className={`btn w-full justify-center mt-4 ${cart.length? 'btn-primary':'btn-outline opacity-60 cursor-not-allowed'}`}>주문 접수하기</button>
+    </aside>
+  );
+}
+
+function AdminView({ state, setState }) {
+  const [authed, setAuthed] = useState(false);
+  const [pw, setPw] = useState('');
+
+  if (!authed) {
+    return (
+      <div className="max-w-md mx-auto mt-10 soft-card p-8 text-center">
+        <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Admin</div>
+        <div className="font-display text-2xl mt-1">관리자 로그인</div>
+        <p className="text-xs ink-soft mt-2">기본 비밀번호: <span className="font-mono">stair</span> (배포 시 변경하세요)</p>
+        <input type="password" value={pw} onChange={e=>setPw(e.target.value)}
+               onKeyDown={e => e.key==='Enter' && (pw==='stair' ? setAuthed(true) : alert('비밀번호 오류'))}
+               className="mt-4 w-full border hairline rounded-md px-3 py-2 bg-paper" placeholder="비밀번호" />
+        <button onClick={()=> pw==='stair' ? setAuthed(true) : alert('비밀번호 오류')} className="btn btn-primary w-full justify-center mt-3">로그인</button>
+      </div>
+    );
+  }
+
+  const updateNote = (id, text) => setState({ ...state, notes: { ...state.notes, [id]: text } });
+  const updateGreeting = (text) => setState({ ...state, greeting: text });
+
+  const resetAll = () => {
+    if (!confirm('사장님 한마디를 초기값으로 되돌립니다. 계속할까요?')) return;
+    setState({ ...state, notes: { ...defaultOwnerNotes }, greeting: defaultGreeting });
+  };
+
+  const exportJson = () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'stair_admin_export.json'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importJson = (ev) => {
+    const f = ev.target.files?.[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const p = JSON.parse(r.result);
+        setState({ ...state, ...p, notes: { ...defaultOwnerNotes, ...(p.notes||{}) } });
+        alert('가져오기 완료');
+      } catch(e) { alert('JSON 파싱 실패'); }
+    };
+    r.readAsText(f);
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="soft-card p-6">
+        <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Greeting</div>
+        <div className="font-display text-2xl mt-1 mb-2">사장님의 한마디 (메인 페이지)</div>
+        <textarea value={state.greeting} onChange={e=>updateGreeting(e.target.value)}
+          className="w-full border hairline rounded-md p-3 bg-paper text-sm leading-relaxed" rows={4}/>
+      </div>
+
+      <div className="soft-card p-6">
+        <div className="flex justify-between items-center flex-wrap gap-3 mb-4">
+          <div>
+            <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Per-Item Notes</div>
+            <div className="font-display text-2xl">원두별 사장님 한마디</div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={exportJson} className="btn btn-outline">내보내기 (JSON)</button>
+            <label className="btn btn-outline cursor-pointer">가져오기
+              <input type="file" accept="application/json" className="hidden" onChange={importJson}/>
+            </label>
+            <button onClick={resetAll} className="btn btn-outline">초기화</button>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {[...CATALOG.brewing, ...CATALOG.decaf, ...CATALOG.blended].map(b => (
+            <div key={b.id} className="border hairline rounded-md p-3 bg-paper">
+              <div className="flex justify-between items-start gap-3 flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                  <div className="font-medium">{b.name}</div>
+                  <div className="text-xs ink-soft">{b.origin} · {b.process}</div>
+                </div>
+                <div className="text-xs ink-soft">{KRW(b.price)}</div>
+              </div>
+              <textarea value={state.notes[b.id] || ''} onChange={e=>updateNote(b.id, e.target.value)}
+                className="w-full mt-2 border hairline rounded-md p-2 bg-paper-2 text-sm" rows={2}
+                placeholder="사장님 한마디를 입력하세요" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="soft-card p-6">
+        <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Orders</div>
+        <div className="font-display text-2xl mb-3">최근 주문 (로컬 기록)</div>
+        {state.orders.length === 0 && <div className="text-sm ink-soft">아직 주문이 없습니다.</div>}
+        <div className="space-y-3">
+          {state.orders.slice().reverse().slice(0,30).map((o,i)=>(
+            <div key={i} className="border hairline rounded-md p-3 text-sm bg-paper">
+              <div className="flex justify-between">
+                <div className="ink-soft text-xs">{new Date(o.at).toLocaleString('ko-KR')}</div>
+                <div className="font-display text-lg">{KRW(o.total)}</div>
+              </div>
+              <ul className="mt-2 text-sm list-disc pl-5">
+                {o.items.map((it,j)=><li key={j}>{it.name} × {it.qty} <span className="ink-soft text-xs">{optionLabel(it.options)}</span></li>)}
+              </ul>
+              {o.takeout && <div className="text-xs text-gold mt-1">테이크아웃</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GuideView() {
+  return (
+    <div className="max-w-3xl mx-auto space-y-8">
+      <section className="soft-card p-6">
+        <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">About</div>
+        <div className="font-display text-3xl mt-1">STAiR Dashboard · 사용 안내</div>
+        <p className="ink-soft mt-3 leading-relaxed text-sm">
+          스테어 커피의 메뉴를 손님이 아이패드로 직접 보면서 원두의 특징과 사장님의 한마디를 확인하고, 주문까지 내릴 수 있는 단일 파일 웹앱입니다. 별도 서버 없이 브라우저에서 바로 실행됩니다.
+        </p>
+      </section>
+
+      <section className="soft-card p-6">
+        <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Sitemap</div>
+        <div className="font-display text-2xl mt-1 mb-3">사이트 구조</div>
+        <pre className="text-[12.5px] leading-relaxed bg-paper-2 p-3 rounded whitespace-pre-wrap">
+{`├─ 메뉴 · 주문 (Menu)
+│   ├─ 사장님의 한마디
+│   ├─ 브루잉 커피 (싱글 오리진 11종)
+│   │     ↳ 카드 클릭 → 원두 상세 모달
+│   │        (산지/품종/가공/고도/노트/추천 타이밍/사장님 한마디)
+│   ├─ 디카페인
+│   ├─ 블렌디드 (로스팅 선택)
+│   ├─ 에스프레소 · 리필
+│   ├─ 차 / 음료 / 영·유아 / 디저트
+│   └─ 필터: 입문/중급/고급/가공방식/한정
+│
+├─ 사이드 카트
+│   ├─ 수량 조절, 옵션 확인
+│   ├─ 테이크아웃 선택 → 음료당 1,000원 할인
+│   └─ 주문 접수 → 관리자 탭 "최근 주문"에 기록
+│
+└─ 관리자 (Admin · 비번 stair)
+    ├─ 메인 인사말 수정
+    ├─ 원두별 사장님 한마디 수정
+    ├─ 최근 주문 확인
+    └─ JSON 내보내기/가져오기, 초기화`}
+        </pre>
+      </section>
+
+      <section className="soft-card p-6">
+        <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">How to run</div>
+        <div className="font-display text-2xl mt-1 mb-3">구동 방법</div>
+        <ol className="list-decimal pl-5 space-y-2 text-sm leading-relaxed">
+          <li><b>매장 아이패드에서:</b> 이 파일을 아이패드 "파일" 앱에 저장 → Safari로 열기 → 공유 → <b>홈 화면에 추가</b>하면 앱처럼 사용 가능합니다.</li>
+          <li><b>PC/노트북에서:</b> <span className="font-mono">index.html</span> 파일을 더블클릭하면 브라우저에서 바로 실행됩니다.</li>
+          <li><b>온라인 배포:</b> GitHub에 푸시 후 Vercel과 연결하면 공용 URL로 접속할 수 있습니다. 푸시할 때마다 자동 재배포됩니다.</li>
+          <li><b>와이파이 공유(선택):</b> 같은 네트워크의 기기에 보여주려면 파일을 한 대에 두고 간단한 정적 서버를 실행하세요. 예: 터미널에서 <span className="font-mono">python3 -m http.server 8080</span> 후, 다른 기기에서 <span className="font-mono">http://[IP]:8080</span> 접속.</li>
+          <li><b>데이터 저장 위치:</b> 사장님 한마디/주문은 해당 브라우저의 localStorage에 저장됩니다. 기기를 바꾸려면 관리자 탭에서 <b>JSON 내보내기 → 새 기기에서 가져오기</b>를 이용하세요.</li>
+          <li><b>비밀번호 변경:</b> 파일을 텍스트 편집기로 열고 <span className="font-mono">pw==='stair'</span> 두 군데를 원하는 비밀번호로 바꾸면 끝입니다.</li>
+        </ol>
+      </section>
+
+      <section className="soft-card p-6">
+        <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">File structure</div>
+        <div className="font-display text-2xl mt-1 mb-3">파일 구조 (유지보수 기준)</div>
+        <pre className="text-[12.5px] leading-relaxed bg-paper-2 p-3 rounded whitespace-pre-wrap">
+{`stair_coffee_app.html   ← 단일 파일 앱 (React + Tailwind CDN)
+  └── <script> 영역의 CATALOG = { ... }   ← 메뉴 추가/수정
+  └── defaultOwnerNotes                 ← 최초 사장님 한마디
+  └── 관리자 비밀번호 상수 'stair'
+README_스테어.md         ← 구동/배포 가이드 (같은 폴더에 배포)
+stair_admin_export.json  ← (선택) 관리자 내보낸 백업`}
+        </pre>
+      </section>
+
+      <section className="soft-card p-6">
+        <div className="font-display tracking-[0.25em] text-xs text-gold uppercase">Roadmap</div>
+        <div className="font-display text-2xl mt-1 mb-3">확장 로드맵</div>
+        <ul className="list-disc pl-5 space-y-1 text-sm leading-relaxed">
+          <li>POS 연동 (키오스크 결제/네이버 스마트스토어 주문 전송)</li>
+          <li>사진 업로드 (원두 사진/사장님 사진)</li>
+          <li>당일 추천 원두 핀 기능 (관리자 탭 "오늘의 추천")</li>
+          <li>다국어 지원 (EN/JP)</li>
+          <li>로스팅 날짜/재고 노출</li>
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function App() {
+  const [tab, setTab] = useState('menu');
+  const [state, setState] = useState(loadState);
+  const [activeBean, setActiveBean] = useState(null);
+  const [cart, setCart] = useState([]);
+  const [takeout, setTakeout] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => { saveState(state); }, [state]);
+
+  const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(null), 1600); };
+
+  const addToCart = (entry) => {
+    const opts = { ...DEFAULT_OPTIONS, ...entry.options };
+    const idx = cart.findIndex(c => c.id === entry.id && sameOptions(c.options, opts));
+    if (idx >= 0) {
+      const next = [...cart]; next[idx] = { ...next[idx], qty: next[idx].qty + 1 }; setCart(next);
+    } else {
+      setCart([...cart, { ...entry, options: opts, qty: 1 }]);
+    }
+    setActiveBean(null);
+    showToast(`담김: ${entry.name}`);
+  };
+
+  const checkout = () => {
+    const subtotal = cart.reduce((s, it) => s + (it.basePrice + (it.options.iced?500:0)) * it.qty, 0);
+    const eligible = cart.filter(it => !/리필|디저트|치즈케이크|토스트|주스/.test(it.name)).reduce((s,it)=>s+it.qty,0);
+    const discount = takeout ? 1000 * eligible : 0;
+    const total = Math.max(0, subtotal - discount);
+    const order = { at: Date.now(), items: cart, total, takeout };
+    setState({ ...state, orders: [...state.orders, order] });
+    setCart([]); setTakeout(false);
+    alert(`주문이 접수되었습니다.\n총 금액: ${KRW(total)}\n카운터에서 호출까지 잠시만 기다려 주세요 :)`);
+  };
+
+  return (
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-30 bg-paper/90 backdrop-blur border-b hairline">
+        <div className="max-w-[1400px] mx-auto px-5 md:px-8 py-4 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4">
+            <div>
+              <div className="font-stair text-2xl">STAiR</div>
+              <div className="text-[10px] tracking-[0.3em] text-gold">스테어 커피 · SIPHON CAFE</div>
+            </div>
+          </div>
+          <nav className="flex gap-2 flex-wrap">
+            {[
+              ['menu','메뉴 · 주문'],
+              ['guide','사용 안내'],
+              ['admin','관리자'],
+            ].map(([k,label]) => (
+              <button key={k} onClick={()=>setTab(k)} className={`btn ${tab===k?'btn-primary':'btn-outline'}`}>{label}</button>
+            ))}
+          </nav>
+        </div>
+      </header>
+
+      <main className="max-w-[1400px] mx-auto px-5 md:px-8 py-6 md:py-10">
+        {tab === 'menu' && (
+          <div className="grid lg:grid-cols-[1fr_360px] gap-8">
+            <div>
+              <MenuView
+                notes={state.notes}
+                greeting={state.greeting}
+                onAdd={addToCart}
+                setActiveBean={setActiveBean}
+              />
+            </div>
+            <CartPanel cart={cart} setCart={setCart} takeout={takeout} setTakeout={setTakeout} onCheckout={checkout} />
+          </div>
+        )}
+        {tab === 'guide' && <GuideView />}
+        {tab === 'admin' && <AdminView state={state} setState={setState} />}
+      </main>
+
+      {activeBean && <BeanModal bean={activeBean} ownerNote={state.notes[activeBean.id]} onClose={()=>setActiveBean(null)} onAdd={addToCart} />}
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 btn-primary btn shadow-lg">
+          {toast}
+        </div>
+      )}
+
+      <footer className="text-center text-xs ink-soft py-10">
+        STAiR 스테어 커피 · @stair_2025 · 사이폰 전문 · 이 대시보드는 현장에서 실행되는 단일 파일 앱입니다.
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
